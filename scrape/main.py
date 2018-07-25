@@ -7,8 +7,8 @@ from config import DBC_PASSWORD, DBC_USERNAME
 import config
 from datetime import date
 import datetime
-from send_mail import  send_email
-
+from send_mail import send_email
+import logging
 
 headers = {
     "User-Agent":"Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
@@ -44,7 +44,7 @@ class HillsClient(object):
     def _load_cookies(self):
         ## Load ASP session id/ initial cookies
         r = self.session.get(self.main_url)
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, "html.parser")
 
         try:
             cid = soup('input',id='captcha-guid')[0].attrs['value']
@@ -59,8 +59,9 @@ class HillsClient(object):
             f.write(r.content)
 
     def _parse_detail_page(self,url):
+        logging.info("Parsing details from: " + str(url))
         r = requests.get(url)
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, "html.parser")
         address_table = soup('a',{"name":'Address'})[0].findNext('table')
         address_str = ','.join([x.text.strip() for x in address_table('td')])
 
@@ -77,6 +78,8 @@ class HillsClient(object):
         table = soup.table
         rows = table.tbody('tr')
 
+        logging.info("Preparing to parse table rows.")
+
         n = 0
         for r in rows:
             row_status = [x for x in r.attrs['class'] if x][0]
@@ -88,7 +91,9 @@ class HillsClient(object):
 
             prev_row_status = row_status
 
-        for record in records:
+        logging.info("Preparing to process records.")
+        for i, record in enumerate(records[:3]):
+            logging.info("Processing record: " + str(i))
             d = {}
             charges = []
             name_parts = record[0].a.text.split(',')
@@ -103,11 +108,15 @@ class HillsClient(object):
 
             d.update(self._parse_detail_page(detail_link))
 
-            for row in record:
+            for i, row in enumerate(record):
+                logging.info("Processing row: " + str(i))
                 try:
                     charge = row('td')[2].text.strip()
-                    if not charge.startswith('POB:') and not charge.startswith('SOID:'):
+                    if charge and not charge.startswith('POB:') and not charge.startswith('SOID:'):
+                        logging.info("Appending a charge: " + str(charge))
                         charges.append(charge)
+                    else:
+                        logging.info("Skipping charge in row: " + str(i))
                 except:
                     pass
 
@@ -156,7 +165,7 @@ class HillsClient(object):
 
         return r.content
 
-        soup = BeautifulSoup(r.content)
+        soup = BeautifulSoup(r.content, "html.parser")
         try:
             total_results = int(soup('span',class_='paginationLeft')[0].text.strip().split(' of ')[-1])
             self.total_results = total_results
@@ -185,7 +194,28 @@ def write_csv(fname, content):
 
 def main():
 
+    # Create the client
     hc = HillsClient()
+
+    # File names
+    fname = str(hc.get_date()).replace('/','-')
+    fname_csv = fname + '.csv'
+    fname_log = fname + '.log'
+
+    # Logging
+    level = logging.DEBUG
+    root = logging.getLogger()
+    root.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh = logging.FileHandler(fname_log)
+    fh.setLevel(level)
+    fh.setFormatter(formatter)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(level)
+    ch.setFormatter(formatter)
+    #root.addHandler(ch)
+    root.addHandler(fh)
+
     hc._load_cookies()
     vc = hc._get_captcha(hc.captcha_guid)
     dbc_client = deathbycaptcha.HttpClient(DBC_USERNAME,DBC_PASSWORD)
@@ -199,16 +229,13 @@ def main():
     for date in [today, yesterday]:
         search_res = hc.search_arrests(captcha_text,date=date)
 
-        soup = BeautifulSoup(search_res)
+        soup = BeautifulSoup(search_res, "html.parser")
         recs = hc._parse_results(soup)
         all_recs += recs
 
+    write_csv(fname_csv, all_recs)
 
-    fname_out = str(hc.get_date()).replace('/','-') + '.csv'
-
-    write_csv(fname_out, all_recs)
-
-    send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_out)
+    send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
 
 if __name__ == '__main__':
     try:
