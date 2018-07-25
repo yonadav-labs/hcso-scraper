@@ -3,9 +3,14 @@ FROM alpine:latest
 RUN apk add --update python3 py3-pip 
 RUN apk add --update tzdata
 
-# Copy script which should be run
-COPY scrape /scrapearrests
+WORKDIR /scrapearrests
+
+# Install deps
+COPY scrape/requirements.txt .
 RUN pip3 install -r /scrapearrests/requirements.txt
+
+# Copy script which should be run
+COPY scrape .
 
 RUN chmod +x /scrapearrests/main.py
 

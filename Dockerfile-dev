@@ -1,0 +1,10 @@
+FROM alpine:latest
+
+RUN apk add --update python3 py3-pip 
+RUN apk add --update tzdata
+
+WORKDIR /app
+
+# Install deps
+COPY scrape/requirements.txt .
+RUN pip3 install -r requirements.txt
