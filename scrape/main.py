@@ -17,7 +17,12 @@ headers = {
 
 """ Client for http://webapps.hcso.tampa.fl.us/ArrestInquiry """
 class HillsClient(object):
-    def __init__(self):
+    def __init__(self, start_date, days = 1):
+        """
+        :start_date :: datetime.date, The first date for which arrest records are desired.
+        :days :: int, The number of days after start_date for wich arrest
+              records are desired. Use '1' if records for start_date only are desired.
+        """
         self.session = requests.session()
         self.session.headers.update(headers)
 
@@ -29,6 +34,12 @@ class HillsClient(object):
         self.current_page = 1
         self.total_results = 0
 
+        # Validate `days`
+        if days < 1:
+            raise ValueError("'days' must not be less than 1.")
+
+        # Create a set of dates.
+        self.dates = [start_date + datetime.timedelta(days=x) for x in range(0, days)]
     
     def get_date(self,days=0):
         today = date.today()
@@ -143,10 +154,18 @@ class HillsClient(object):
 
 
     def search_arrests(self, captcha_text, date):
+        """
+        :captcha_text :: string, text found in CAPTCHA image.
+        :date :: datetime.date, the date for which to retrieve arrests.
+        """
+
+        # Format the date for the payload.
+        formatted_date = date.strftime('%m/%d/%Y')
+
         payload = {
             "SearchBookingNumber": '',
             "SearchName": '',
-            "SearchBookingDate": date,
+            "SearchBookingDate": formatted_date,
             "SearchReleaseDate": '',
             "SearchRace": '',
             "SearchSex": '',
@@ -160,6 +179,8 @@ class HillsClient(object):
             "SearchIncludeDetails": "true",
             "SearchResults.CurrentPage": self.current_page
         }
+
+        logging.info("Searching for arrests for " + str(date))
 
         r = self.session.post(self.main_url, payload,headers=headers)
 
@@ -195,7 +216,8 @@ def write_csv(fname, content):
 def main():
 
     # Create the client
-    hc = HillsClient()
+    today = datetime.date.today()
+    hc = HillsClient(today)
 
     # File names
     fname = str(hc.get_date()).replace('/','-')
@@ -206,15 +228,15 @@ def main():
     level = logging.DEBUG
     root = logging.getLogger()
     root.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    fh = logging.FileHandler(fname_log)
-    fh.setLevel(level)
-    fh.setFormatter(formatter)
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(level)
-    ch.setFormatter(formatter)
-    #root.addHandler(ch)
-    root.addHandler(fh)
+    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # fh = logging.FileHandler(fname_log)
+    # fh.setLevel(level)
+    # fh.setFormatter(formatter)
+    # ch = logging.StreamHandler(sys.stdout)
+    # ch.setLevel(level)
+    # ch.setFormatter(formatter)
+    # root.addHandler(ch)
+    #root.addHandler(fh)
 
     hc._load_cookies()
     vc = hc._get_captcha(hc.captcha_guid)
@@ -222,11 +244,11 @@ def main():
 
     captcha_res = dbc_client.decode('captcha.jpg')
     captcha_text = captcha_res['text']
-
-    today, yesterday = hc.get_date(), hc.get_date(days=1)
+    logging.info("CAPTCHA text: " + captcha_text)
 
     all_recs = []
-    for date in [today, yesterday]:
+    for date in hc.dates:
+        #logging.info
         search_res = hc.search_arrests(captcha_text,date=date)
 
         soup = BeautifulSoup(search_res, "html.parser")
