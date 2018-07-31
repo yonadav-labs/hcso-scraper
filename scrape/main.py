@@ -216,8 +216,8 @@ def write_csv(fname, content):
 def main():
 
     # Create the client
-    today = datetime.date.today()
-    hc = HillsClient(today)
+    yesterday = datetime.date.today() - datetime.timedelta(days=1)
+    hc = HillsClient(yesterday, days = 2)
 
     # File names
     fname = str(hc.get_date()).replace('/','-')
