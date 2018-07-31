@@ -151,8 +151,6 @@ class HillsClient(object):
         
         return out_records
 
-
-
     def search_arrests(self, captcha_text, date):
         """
         :captcha_text :: string, text found in CAPTCHA image.
@@ -195,6 +193,28 @@ class HillsClient(object):
 
         return r
 
+    def run(self):
+        """
+        Main entry point to functionality.
+        Returns an array of arrest records.
+        """
+        self._load_cookies()
+        self._get_captcha(self.captcha_guid)
+        dbc_client = deathbycaptcha.HttpClient(DBC_USERNAME,DBC_PASSWORD)
+
+        captcha_res = dbc_client.decode('captcha.jpg')
+        captcha_text = captcha_res['text']
+        logging.info("CAPTCHA text: " + captcha_text)
+
+        all_recs = []
+        for date in self.dates:
+            search_res = self.search_arrests(captcha_text,date=date)
+            soup = BeautifulSoup(search_res, "html.parser")
+            recs = self._parse_results(soup)
+            all_recs += recs
+
+        return all_recs
+
 def write_csv(fname, content):
     headers = ['fname','lname','street','city','state','zip_code','charge1','charge2','charge3']
     with open(fname,'w') as f:
@@ -210,8 +230,6 @@ def write_csv(fname, content):
         with open(fname,'w') as out_file:
             for line in lines:
                 out_file.write(line)
-
-
 
 def main():
 
@@ -238,22 +256,7 @@ def main():
     # root.addHandler(ch)
     #root.addHandler(fh)
 
-    hc._load_cookies()
-    vc = hc._get_captcha(hc.captcha_guid)
-    dbc_client = deathbycaptcha.HttpClient(DBC_USERNAME,DBC_PASSWORD)
-
-    captcha_res = dbc_client.decode('captcha.jpg')
-    captcha_text = captcha_res['text']
-    logging.info("CAPTCHA text: " + captcha_text)
-
-    all_recs = []
-    for date in hc.dates:
-        #logging.info
-        search_res = hc.search_arrests(captcha_text,date=date)
-
-        soup = BeautifulSoup(search_res, "html.parser")
-        recs = hc._parse_results(soup)
-        all_recs += recs
+    all_recs = hc.run()
 
     write_csv(fname_csv, all_recs)
 
