@@ -1,0 +1,17 @@
+FROM alpine:latest
+
+RUN apk add --update python3 py3-pip 
+RUN apk add --update tzdata
+
+WORKDIR /scrapearrests
+
+# Install deps
+COPY scrape/requirements.txt .
+RUN pip3 install -r /scrapearrests/requirements.txt
+
+# Copy script which should be run
+COPY . .
+
+ENV PYTHONPATH=/scrapearrests/scrape
+
+CMD ["python3", "/scrapearrests/web/manage.py", "runserver", "0:8000"]
