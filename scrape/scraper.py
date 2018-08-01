@@ -9,6 +9,7 @@ from datetime import date
 import datetime
 from send_mail import send_email
 import logging
+import io
 
 headers = {
     "User-Agent":"Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0"
@@ -215,21 +216,36 @@ class HillsClient(object):
 
         return all_recs
 
-def write_csv(fname, content):
+def write_csv(file_like, content):
+    """
+    :file_like A file-like object to write CSV data to.
+    :content An array of objects to be converted and written to CSV.
+    """
+    # First, write data to a StringIO (we're ignoring the file-like passed in for now).
+    f = io.StringIO()
     headers = ['fname','lname','street','city','state','zip_code','charge1','charge2','charge3']
-    with open(fname,'w') as f:
-        csvw = csv.DictWriter(f,fieldnames=headers)
-        csvw.writeheader()
-        csvw.writerows(content)
+    csvw = csv.DictWriter(f,fieldnames=headers)
+    csvw.writeheader()
+    csvw.writerows(content)
 
-    ## rewrite header
-    with open(fname,'r') as in_file:
-        lines = in_file.readlines()
-        lines[0] = ','.join(['First Name','Last Name', 'Street','City','State','Zip','Charge1','Charge2','Charge3']) + "\n"
-        
-        with open(fname,'w') as out_file:
-            for line in lines:
-                out_file.write(line)
+    # Get string value.
+    contentStrTmp = f.getvalue()
+
+    # Convert to lines.
+    lines = contentStrTmp.splitlines()
+
+    # Replace the header.
+    newHeader = ','.join(['First Name','Last Name', 'Street','City','State','Zip','Charge1','Charge2','Charge3'])
+    lines[0] = newHeader
+
+    # Concatenate the lines back together.
+    contentStr = "\n".join(lines)
+
+    # And add a newline at the end.
+    contentStr += "\n"
+
+    # Write contentStr to the given file-like.
+    file_like.write(contentStr)
 
 def main():
 
@@ -258,9 +274,10 @@ def main():
 
     all_recs = hc.run()
 
-    write_csv(fname_csv, all_recs)
+    with open(fname_csv, "w") as f:
+        write_csv(f, all_recs)
 
-    send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
+ #   send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
 
 if __name__ == '__main__':
     try:
