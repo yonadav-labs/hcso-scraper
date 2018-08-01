@@ -1,6 +1,8 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 import datetime
+import scraper
+import io
 
 def index(request):
     return render(request, 'index.html', content_type='text/html')
@@ -9,11 +11,29 @@ def arrests(request):
     frmStr = request.GET.get('from', None)
     toStr = request.GET.get('to', None)
 
+    # Create the start date and number of days desired from input.
     frmDate = fromIsoFormat(frmStr)
     toDate = fromIsoFormat(toStr)
+    interval = toDate - frmDate
+    days = interval.days
 
-    return HttpResponse("You selected from: " + str(frmDate) + " and to: " + str(toDate))
-    #return HttpResponse("You selected from: " + frmStr + " and to: " + toStr)
+    # Get arrest records.
+    hc = scraper.HillsClient(frmDate, days)
+    arrests = hc.run()
+
+    # Convert arrests to CSV string.
+    csv = ""
+    with io.StringIO() as f:
+        scraper.write_csv(f, arrests)
+        csv = f.getvalue()
+
+    # Create the response.
+    response = HttpResponse(csv, content_type="application/csv")
+
+    # Set the header for file download.
+    response["Content-Disposition"] = "attachment; filename='arrests.csv'"
+
+    return response
 
 def fromIsoFormat(dateStr):
     """
