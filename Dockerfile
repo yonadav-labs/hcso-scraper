@@ -18,6 +18,6 @@ RUN chmod +x /scrapearrests/main.py
 ENV TZ=US/Eastern
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN echo '00 08  *  *  *   python3 /scrapearrests/main.py' > /var/spool/cron/crontabs/root
+RUN echo '00 08  *  *  *   python3 /scrapearrests/scraper.py' > /var/spool/cron/crontabs/root
 
 CMD crond -l 2 -f
