@@ -262,21 +262,15 @@ def main():
     level = logging.DEBUG
     root = logging.getLogger()
     root.setLevel(level)
-    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # fh = logging.FileHandler(fname_log)
-    # fh.setLevel(level)
-    # fh.setFormatter(formatter)
-    # ch = logging.StreamHandler(sys.stdout)
-    # ch.setLevel(level)
-    # ch.setFormatter(formatter)
-    # root.addHandler(ch)
-    #root.addHandler(fh)
 
+    # Run the scraper.
     all_recs = hc.run()
 
+    # Write the arrest records to file.
     with open(fname_csv, "w") as f:
         write_csv(f, all_recs)
 
+    # Send the email with results attached.
     send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
 
 if __name__ == '__main__':
