@@ -277,7 +277,7 @@ def main():
     with open(fname_csv, "w") as f:
         write_csv(f, all_recs)
 
- #   send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
+    send_email(config.EMAIL_TO, subject="Hillsborough County Arrests",attachment=fname_csv)
 
 if __name__ == '__main__':
     try:
