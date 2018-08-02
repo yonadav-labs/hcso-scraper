@@ -104,7 +104,7 @@ class HillsClient(object):
             prev_row_status = row_status
 
         logging.info("Preparing to process records.")
-        for i, record in enumerate(records[:3]):
+        for i, record in enumerate(records):
             logging.info("Processing record: " + str(i))
             d = {}
             charges = []
