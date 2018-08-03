@@ -90,7 +90,7 @@ class HillsClient(object):
         table = soup.table
         rows = table.tbody('tr')
 
-        logging.info("Preparing to parse table rows.")
+        logging.debug("Preparing to parse table rows.")
 
         n = 0
         for r in rows:
@@ -103,9 +103,9 @@ class HillsClient(object):
 
             prev_row_status = row_status
 
-        logging.info("Preparing to process records.")
+        logging.debug("Preparing to process records.")
         for i, record in enumerate(records):
-            logging.info("Processing record: " + str(i))
+            logging.debug("Processing record: " + str(i))
             d = {}
             charges = []
             name_parts = record[0].a.text.split(',')
@@ -121,14 +121,14 @@ class HillsClient(object):
             d.update(self._parse_detail_page(detail_link))
 
             for i, row in enumerate(record):
-                logging.info("Processing row: " + str(i))
+                logging.debug("Processing record: " + str(i))
                 try:
                     charge = row('td')[2].text.strip()
                     if charge and not charge.startswith('POB:') and not charge.startswith('SOID:'):
-                        logging.info("Appending a charge: " + str(charge))
+                        logging.debug("Appending a charge: " + str(charge))
                         charges.append(charge)
                     else:
-                        logging.info("Skipping charge in row: " + str(i))
+                        logging.debug("Skipping charge in row: " + str(i))
                 except:
                     pass
 
