@@ -1,0 +1,36 @@
+.center {
+    margin: auto;
+    width: 50%;
+    text-align: center;
+}
+
+h1 {
+    font-size: large;
+}
+
+label {
+    display: inline-block;
+    float: left;
+    clear: left;
+    width: 250px;
+    text-align: right;
+    margin-right: 2px;
+}
+
+input {
+    display: inline-block;
+    float: left;
+    clear: right;
+    margin: 2px;
+}
+
+.clearfix::after { 
+   content: " ";
+   display: block; 
+   height: 0; 
+   clear: both;
+}
+
+button {
+    margin: 2px;
+}

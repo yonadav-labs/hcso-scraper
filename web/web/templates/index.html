@@ -4,22 +4,24 @@
 
   <title>Hillsborough Sherrif Scraper</title>
 
-  <!-- <link rel="stylesheet" href="css/styles.css?v=1.0"> -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'web/style.css' %}">
 </head>
 
-<body>
+<body class="center">
+  <h1>Hillsborough County Arrest Records</h1>
   <p>Please select a date range</p>
   <form method="GET" action="arrests">
-    <div>
-      <label for="from">From:</label>
+    <div class="clearfix">
+      <label for="from">From: </label>
       <input type="date" id="from" name="from">
-    </div>
-    <div>
-      <label for="to">To:</label>
+      <label for="to">To: </label>
       <input type="date" id="to" name="to">
     </div>
 
-    <button type="submit">OK</button>
+    <div>
+      <button type="submit">Submit</button>
+    </div>
   </form>
 </body>
 </html>
