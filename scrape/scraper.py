@@ -20,9 +20,10 @@ headers = {
 class HillsClient(object):
     def __init__(self, start_date, days = 1):
         """
-        :start_date :: datetime.date, The first date for which arrest records are desired.
-        :days :: int, The number of days after start_date for wich arrest
-              records are desired. Use '1' if records for start_date only are desired.
+        :start_date :: datetime.date, The first date for which arrest records
+          are desired.
+        :days :: int, The total number of days for which arrest records are
+          desired. Use '1' if records for start_date only are desired.
         """
         self.session = requests.session()
         self.session.headers.update(headers)

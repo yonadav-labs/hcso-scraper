@@ -15,7 +15,7 @@ def arrests(request):
     frmDate = fromIsoFormat(frmStr)
     toDate = fromIsoFormat(toStr)
     interval = toDate - frmDate
-    days = interval.days
+    days = interval.days + 1
 
     # Get arrest records.
     hc = scraper.HillsClient(frmDate, days)
