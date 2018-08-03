@@ -3,15 +3,15 @@ FROM alpine:latest
 RUN apk add --update python3 py3-pip 
 RUN apk add --update tzdata
 
-WORKDIR /scrapearrests
+WORKDIR /app
 
 # Install deps
 COPY scrape/requirements.txt .
-RUN pip3 install -r /scrapearrests/requirements.txt
+RUN pip3 install -r /app/requirements.txt
 
 # Copy script which should be run
 COPY . .
 
-ENV PYTHONPATH=/scrapearrests/scrape
+ENV PYTHONPATH=/app/scrape
 
-CMD ["python3", "/scrapearrests/web/manage.py", "runserver", "0:8000"]
+CMD ["python3", "/app/web/manage.py", "runserver", "0:8000"]

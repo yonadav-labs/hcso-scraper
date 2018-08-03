@@ -13,4 +13,4 @@ run-web:
 	docker run -d --name scraper-web --restart=unless-stopped -p 80:8000 gregorywhite/scraper-web
 
 dev:
-	docker run --rm -it -v `pwd`:/app -p 8000:8000 gregorywhite/scraper-web sh
+	docker run --rm -it -v `pwd`:/app -p 80:8000 gregorywhite/scraper-web sh
