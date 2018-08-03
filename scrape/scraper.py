@@ -209,10 +209,18 @@ class HillsClient(object):
 
         all_recs = []
         for date in self.dates:
-            search_res = self.search_arrests(captcha_text,date=date)
-            soup = BeautifulSoup(search_res, "html.parser")
-            recs = self._parse_results(soup)
-            all_recs += recs
+            # Parsing intermittently fails with a AttributeErrorException
+            # because 'soup' does not have an HTML table as expected. This while
+            # loop keeps trying until there is not exception.
+            while True:
+                try:
+                    search_res = self.search_arrests(captcha_text,date=date)
+                    soup = BeautifulSoup(search_res, "html.parser")
+                    recs = self._parse_results(soup)
+                    all_recs += recs
+                except AttributeErrorException:
+                    continue
+                break
 
         return all_recs
 
