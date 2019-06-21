@@ -31,7 +31,7 @@ def arrests(request):
     response = HttpResponse(csv, content_type="application/csv")
 
     # Set the header for file download.
-    response["Content-Disposition"] = "attachment; filename='arrests.csv'"
+    response["Content-Disposition"] = "attachment; filename=arrests.csv"
 
     return response
 
