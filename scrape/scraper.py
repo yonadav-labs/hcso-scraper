@@ -1,15 +1,17 @@
+import io
 import csv
 import sys
-import requests
-from bs4 import BeautifulSoup
-import deathbycaptcha
-from config import DBC_PASSWORD, DBC_USERNAME
-import config
-from datetime import date
 import datetime
-from send_mail import send_email
 import logging
-import io
+from datetime import date
+
+import requests
+import deathbycaptcha
+from bs4 import BeautifulSoup
+
+import config
+from send_mail import send_email
+from config import DBC_PASSWORD, DBC_USERNAME
 
 
 headers = {
@@ -74,12 +76,14 @@ class HillsClient(object):
         logging.info("Parsing details from: " + str(url))
         r = requests.get(url)
         soup = BeautifulSoup(r.content, "html.parser")
-        address_table = soup('a',{"name":'Address'})[0].findNext('table')
-        address_str = ','.join([x.text.strip() for x in address_table('td')])
+        base_div = soup('div', {'class', 'default-hcso-bg bordered pt-4 pb-4 pr-4 pl-4'})[1]
 
-        street, city, state, zip_code = address_str.split(',')
+        return {
+            'state': base_div('div', {'class', 'col-sm-6'})[1].text.replace('State: ', ''),
+            'zip_code': base_div('div', {'class', 'col-sm-12'})[1].text.strip().replace('Zip:', '')
+        }
 
-        return {'street':street.title(), 'city': city.title(), 'state':state,'zip_code':zip_code}
+        return { 'state':state,'zip_code':zip_code }
 
     def _parse_results(self, soup):
         out_records = []
@@ -119,9 +123,9 @@ class HillsClient(object):
             d['personal'] = tds[4].text
 
             tds = record[1].find_all('td')
-            d['address'] = tds[0].text.replace('ADDRESS: ', '')
+            d['street'] = tds[0].text.replace('ADDRESS: ', '')
             d['city'] = tds[1].text.replace('CITY: ', '')
-            d['pob'] = tds[2].text.replace('POB: ', '')
+            d['state'] = tds[2].text.replace('POB: ', '')
 
             tds = record[2].find_all('td')
             d['soid'] = tds[2].text.replace('SOID: ', '')
@@ -129,12 +133,8 @@ class HillsClient(object):
             charges = [ii.find_all('td')[1].text for ii in record[3].table.tbody('tr')]
             d['charges'] = '\n'.join(charges)
 
-            # import pdb
-            # pdb.set_trace()
-
             detail_link = self.base_url + record[0].a['href']
-
-            # d.update(self._parse_detail_page(detail_link))
+            d.update(self._parse_detail_page(detail_link))
 
             out_records.append(d)
         
@@ -186,22 +186,20 @@ class HillsClient(object):
         captcha_text = captcha_res['text']
         logging.info("CAPTCHA text: " + captcha_text)
 
-        # import pdb
-        # pdb.set_trace()
         all_recs = []
         for date in self.dates:
             # Parsing intermittently fails with a AttributeErrorException
             # because 'soup' does not have an HTML table as expected. This while
             # loop keeps trying until there is not exception.
-            # while True:
-                # try:
+            while True:
+                try:
                     search_res = self.search_arrests(captcha_text, date=date)
                     soup = BeautifulSoup(search_res, "html.parser")
                     recs = self._parse_results(soup)
                     all_recs += recs
-                # except:
-                #     continue
-                # break
+                except:
+                    continue
+                break
 
         return all_recs
 
@@ -213,7 +211,7 @@ def write_csv(file_like, content):
     """
     # First, write data to a StringIO (we're ignoring the file-like passed in for now).
     f = io.StringIO()
-    headers = ['fname', 'lname', 'address', 'city', 'pob', 'zip_code', 'charges',
+    headers = ['fname', 'lname', 'street', 'city', 'state', 'zip_code', 'charges',
                'booking_num', 'agency', 'soid', 'personal', 'abn']
     csvw = csv.DictWriter(f,fieldnames=headers)
     csvw.writeheader()
@@ -226,7 +224,7 @@ def write_csv(file_like, content):
     lines = contentStrTmp.splitlines()
 
     # Replace the header.
-    newHeader = ','.join(['First Name', 'Last Name', 'Address', 'City', 'POB',
+    newHeader = ','.join(['First Name', 'Last Name', 'Street', 'City', 'State',
                           'Zip', 'Charges', 'Booking #', 'Agency', 'SOID', 
                           'Personal', 'ABN'])
     lines[0] = newHeader
@@ -244,7 +242,7 @@ def write_csv(file_like, content):
 def main():
     # Create the client
     yesterday = datetime.date.today() - datetime.timedelta(days=1)
-    hc = HillsClient(yesterday, days=1)
+    hc = HillsClient(yesterday, days=2)
 
     # File names
     fname = str(hc.get_date()).replace('/','-')
